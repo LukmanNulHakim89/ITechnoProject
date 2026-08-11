@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Business;
+use App\Models\Expense;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -30,6 +31,11 @@ class DashboardController extends Controller
             ? Carbon::parse($request->query('from'))->startOfDay()
             : $to->copy()->subDays(30)->startOfDay();
 
+        /*
+         * =========================
+         * TRANSACTIONS
+         * =========================
+         */
         $transactions = $business->transactions()
             ->with('items')
             ->whereBetween('transaction_date', [$from, $to])
@@ -38,66 +44,171 @@ class DashboardController extends Controller
         $totalOmzet = $transactions->sum('total_amount');
         $totalTransaksi = $transactions->count();
 
-        // Laba kotor = SUM((selling_price - cost_price) * quantity) dari semua item
-        // yang terjual di rentang tanggal ini. cost_price diambil dari produk
-        // SEKARANG (bukan histori harga saat itu, karena tabel tidak menyimpannya).
-        $allItems = $transactions->flatMap(fn ($t) => $t->items);
+        /*
+         * =========================
+         * TRANSACTION ITEMS
+         * =========================
+         *
+         * Semua item transaksi dalam periode.
+         */
+        $allItems = $transactions->flatMap(
+            fn ($transaction) => $transaction->items
+        );
+
+        /*
+         * Ambil produk hanya untuk mendapatkan nama produk.
+         *
+         * cost_price TIDAK diambil dari Product untuk
+         * perhitungan laba.
+         *
+         * Harga modal historis sudah tersimpan
+         * di TransactionItem.
+         */
         $productIds = $allItems->pluck('product_id')->unique();
-        $products = $business->products()->whereIn('id', $productIds)->get()->keyBy('id');
 
-        $labaKotor = $allItems->sum(function ($item) use ($products) {
-            $product = $products->get($item->product_id);
-            $costPrice = $product ? (float) $product->cost_price : 0;
+        $products = $business->products()
+            ->whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
 
-            return ((float) $item->selling_price - $costPrice) * $item->quantity;
+        /*
+         * =========================
+         * LABA KOTOR
+         * =========================
+         *
+         * (selling_price - cost_price) x quantity
+         */
+        $labaKotor = $allItems->sum(function ($item) {
+            return (
+                (float) $item->selling_price
+                - (float) $item->cost_price
+            ) * $item->quantity;
         });
 
-        // Produk terlaris (by quantity) & paling untung (by margin x quantity)
-        $perProduct = $allItems->groupBy('product_id')->map(function ($items, $productId) use ($products) {
-            $product = $products->get($productId);
-            $qty = $items->sum('quantity');
-            $costPrice = $product ? (float) $product->cost_price : 0;
-            $profit = $items->sum(fn ($i) => ((float) $i->selling_price - $costPrice) * $i->quantity);
+        /*
+         * =========================
+         * EXPENSE / PENGELUARAN
+         * =========================
+         *
+         * Hanya mengambil pengeluaran milik business ini
+         * dan berada dalam periode dashboard.
+         */
+        $totalPengeluaran = Expense::where('business_id', $business->id)
+            ->whereBetween('expense_date', [
+                $from->toDateString(),
+                $to->toDateString(),
+            ])
+            ->sum('amount');
 
-            return [
-                'product_id' => $productId,
-                'product_name' => $product?->name,
-                'quantity_sold' => $qty,
-                'profit' => $profit,
-            ];
-        })->values();
+        /*
+         * =========================
+         * LABA BERSIH
+         * =========================
+         *
+         * Laba bersih = laba kotor - total pengeluaran
+         */
+        $labaBersih = (float) $labaKotor - (float) $totalPengeluaran;
 
-        $bestSeller = $perProduct->sortByDesc('quantity_sold')->take(5)->values();
-        $mostProfitable = $perProduct->sortByDesc('profit')->take(5)->values();
+        /*
+         * =========================
+         * STATISTIK PER PRODUK
+         * =========================
+         *
+         * Dipakai untuk:
+         * - Best Seller
+         * - Most Profitable
+         */
+        $perProduct = $allItems
+            ->groupBy('product_id')
+            ->map(function ($items, $productId) use ($products) {
+                $product = $products->get($productId);
 
-        // Produk stok kritis — pakai accessor stock_status yang sudah ada di model
+                $qty = $items->sum('quantity');
+
+                $profit = $items->sum(function ($item) {
+                    return (
+                        (float) $item->selling_price
+                        - (float) $item->cost_price
+                    ) * $item->quantity;
+                });
+
+                return [
+                    'product_id' => $productId,
+                    'product_name' => $product?->name,
+                    'quantity_sold' => $qty,
+                    'profit' => $profit,
+                ];
+            })
+            ->values();
+
+        /*
+         * 5 produk dengan jumlah penjualan terbanyak.
+         */
+        $bestSeller = $perProduct
+            ->sortByDesc('quantity_sold')
+            ->take(5)
+            ->values();
+
+        /*
+         * 5 produk dengan laba terbesar.
+         */
+        $mostProfitable = $perProduct
+            ->sortByDesc('profit')
+            ->take(5)
+            ->values();
+
+        /*
+         * =========================
+         * CRITICAL STOCK
+         * =========================
+         *
+         * Menggunakan accessor stock_status dari Product.
+         */
         $criticalStock = $business->products()
             ->get()
-            ->filter(fn ($p) => $p->stock_status !== 'AMAN')
-            ->map(fn ($p) => [
-                'product_id' => $p->id,
-                'name' => $p->name,
-                'stock' => $p->stock,
-                'minimum_stock' => $p->minimum_stock,
-                'stock_status' => $p->stock_status,
+            ->filter(
+                fn ($product) => $product->stock_status !== 'AMAN'
+            )
+            ->map(fn ($product) => [
+                'product_id' => $product->id,
+                'name' => $product->name,
+                'stock' => $product->stock,
+                'minimum_stock' => $product->minimum_stock,
+                'stock_status' => $product->stock_status,
             ])
             ->values();
 
+        /*
+         * =========================
+         * RESPONSE
+         * =========================
+         */
         return response()->json([
             'period' => [
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
             ],
+
             'summary' => [
                 'total_omzet' => (float) $totalOmzet,
-                'laba_kotor' => $labaKotor,
+
+                'laba_kotor' => (float) $labaKotor,
+
+                'total_pengeluaran' => (float) $totalPengeluaran,
+
+                'laba_bersih' => (float) $labaBersih,
+
                 'total_transaksi' => $totalTransaksi,
+
                 'rata_rata_transaksi' => $totalTransaksi > 0
                     ? round($totalOmzet / $totalTransaksi, 2)
                     : 0,
             ],
+
             'best_seller' => $bestSeller,
+
             'most_profitable' => $mostProfitable,
+
             'critical_stock' => $criticalStock,
         ]);
     }
