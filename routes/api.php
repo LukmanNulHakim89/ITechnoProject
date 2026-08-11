@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\InsightController;
 use App\Http\Controllers\Api\AdvisorController;
 
+
 /*
 |--------------------------------------------------------------------------
 | Authentication - Public
@@ -44,16 +45,9 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     | Business Owner Routes
     |--------------------------------------------------------------------------
-    |
-    | Semua endpoint yang menggunakan {business} hanya dapat
-    | diakses oleh pemilik business tersebut.
-    |
-    */
+     */
 
     Route::middleware('business.owner')->group(function () {
-    Route::get('/businesses/{business}/insights', [InsightController::class, 'index']);
-    Route::post('/businesses/{business}/insights/generate', [InsightController::class, 'generate']);
-    Route::post('/businesses/{business}/advisor', [AdvisorController::class, 'ask']);
 
         /*
         |--------------------------------------------------------------------------
@@ -145,6 +139,35 @@ Route::middleware('auth:sanctum')->group(function () {
             '/businesses/{business}/dashboard',
             [DashboardController::class, 'index']
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Insights
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/businesses/{business}/insights',
+            [InsightController::class, 'index']
+        );
+
+        Route::post(
+            '/businesses/{business}/insights/generate',
+            [InsightController::class, 'generate']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AI Advisor
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post(
+            '/businesses/{business}/advisor',
+            [AdvisorController::class, 'ask']
+        );
     });
 
 
@@ -153,7 +176,9 @@ Route::middleware('auth:sanctum')->group(function () {
     | Product Resources
     |--------------------------------------------------------------------------
     */
+
     Route::middleware('product.owner')->group(function () {
+
         Route::get(
             '/products/{product}',
             [ProductController::class, 'show']
@@ -174,6 +199,7 @@ Route::middleware('auth:sanctum')->group(function () {
             [ProductController::class, 'destroy']
         );
     });
+
 
     /*
     |--------------------------------------------------------------------------
@@ -225,25 +251,28 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get(
-        '/expenses/{expense}',
-        [ExpenseController::class, 'show']
-    );
+    Route::middleware('expense.owner')->group(function () {
 
-    Route::put(
-        '/expenses/{expense}',
-        [ExpenseController::class, 'update']
-    );
+        Route::get(
+            '/expenses/{expense}',
+            [ExpenseController::class, 'show']
+        );
 
-    Route::patch(
-        '/expenses/{expense}',
-        [ExpenseController::class, 'update']
-    );
+        Route::put(
+            '/expenses/{expense}',
+            [ExpenseController::class, 'update']
+        );
 
-    Route::delete(
-        '/expenses/{expense}',
-        [ExpenseController::class, 'destroy']
-    );
+        Route::patch(
+            '/expenses/{expense}',
+            [ExpenseController::class, 'update']
+        );
+
+        Route::delete(
+            '/expenses/{expense}',
+            [ExpenseController::class, 'destroy']
+        );
+    });
 
 
     /*
@@ -252,8 +281,11 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get(
-        '/inventory-logs/{inventoryLog}',
-        [InventoryLogController::class, 'show']
-    );
+    Route::middleware('inventorylog.owner')->group(function () {
+
+        Route::get(
+            '/inventory-logs/{inventoryLog}',
+            [InventoryLogController::class, 'show']
+        );
+    });
 });

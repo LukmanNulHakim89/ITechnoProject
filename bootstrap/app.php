@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'business.owner' => \App\Http\Middleware\EnsureBusinessOwner::class,
             'product.owner' => \App\Http\Middleware\EnsureProductOwner::class,
+            'expense.owner' => \App\Http\Middleware\EnsureExpenseOwner::class,
+            'inventorylog.owner' => \App\Http\Middleware\EnsureInventoryLogOwner::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

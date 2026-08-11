@@ -14,7 +14,9 @@ class AdvisorController extends Controller
      * POST /api/businesses/{business}/advisor
      *
      * Body:
-     * { "question": "Bagaimana cara meningkatkan omzet bulan ini?" }
+     * {
+     *     "question": "Bagaimana cara meningkatkan omzet bulan ini?"
+     * }
      */
     public function ask(Request $request, Business $business): JsonResponse
     {
@@ -33,26 +35,38 @@ class AdvisorController extends Controller
         $context = $this->buildBusinessContext($business);
 
         $prompt = <<<PROMPT
-Kamu adalah AI Business Advisor untuk aplikasi UMKM Insight. Tugasmu memberi
-saran bisnis yang PRAKTIS dan SPESIFIK berdasarkan data nyata yang diberikan,
-bukan saran generik. Jawab dalam Bahasa Indonesia, singkat (maksimal 4-5
-kalimat atau beberapa poin), dan langsung actionable.
+Kamu adalah AI Business Advisor untuk aplikasi UMKM Insight.
+
+Tugasmu memberi saran bisnis yang PRAKTIS dan SPESIFIK berdasarkan data
+nyata yang diberikan, bukan saran generik.
+
+Jawab dalam Bahasa Indonesia, singkat, maksimal 4-5 kalimat atau beberapa
+poin, dan langsung actionable.
 
 Data bisnis "{$business->name}" (kategori: {$business->category}):
+
 {$context}
 
 Pertanyaan dari pemilik bisnis:
 "{$validated['question']}"
 
-Jawab berdasarkan data di atas. Kalau data tidak cukup untuk menjawab
-spesifik, katakan dengan jelas data apa yang masih kurang.
+Jawab berdasarkan data di atas.
+
+Kalau data tidak cukup untuk menjawab spesifik, katakan dengan jelas
+data apa yang masih kurang.
 PROMPT;
 
         $response = Http::timeout(30)->post(
             'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $apiKey,
             [
                 'contents' => [
-                    ['parts' => [['text' => $prompt]]],
+                    [
+                        'parts' => [
+                            [
+                                'text' => $prompt,
+                            ],
+                        ],
+                    ],
                 ],
             ]
         );
@@ -68,14 +82,15 @@ PROMPT;
 
         return response()->json([
             'question' => $validated['question'],
-            'answer' => trim($answer ?? 'Maaf, AI tidak memberikan jawaban. Coba pertanyaan lain.'),
+            'answer' => trim(
+                $answer ?? 'Maaf, AI tidak memberikan jawaban. Coba pertanyaan lain.'
+            ),
         ]);
     }
 
     /**
-     * Ringkas data bisnis 30 hari terakhir jadi teks yang bisa dipahami
-     * LLM sebagai context — supaya jawabannya nyambung ke data asli,
-     * bukan generik.
+     * Mengambil ringkasan data bisnis 30 hari terakhir
+     * untuk dijadikan context AI.
      */
     private function buildBusinessContext(Business $business): string
     {
@@ -89,14 +104,24 @@ PROMPT;
         $totalOmzet = $transactions->sum('total_amount');
         $totalTransaksi = $transactions->count();
 
-        $items = $transactions->flatMap(fn ($t) => $t->items);
-        $productIds = $items->pluck('product_id')->unique();
-        $products = $business->products()->whereIn('id', $productIds)->get()->keyBy('id');
+        $items = $transactions->flatMap(
+            fn ($transaction) => $transaction->items
+        );
 
-        $bestSeller = $items->groupBy('product_id')
-            ->map(fn ($g, $id) => [
+        $productIds = $items
+            ->pluck('product_id')
+            ->unique();
+
+        $products = $business->products()
+            ->whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
+
+        $bestSeller = $items
+            ->groupBy('product_id')
+            ->map(fn ($group, $id) => [
                 'name' => $products->get($id)?->name ?? 'Produk #' . $id,
-                'qty' => $g->sum('quantity'),
+                'qty' => $group->sum('quantity'),
             ])
             ->sortByDesc('qty')
             ->take(3)
@@ -104,19 +129,38 @@ PROMPT;
 
         $criticalStock = $business->products()
             ->get()
-            ->filter(fn ($p) => $p->stock_status !== 'AMAN')
-            ->map(fn ($p) => "{$p->name} (sisa {$p->stock}, status {$p->stock_status})")
+            ->filter(
+                fn ($product) => $product->stock_status !== 'AMAN'
+            )
+            ->map(
+                fn ($product) =>
+                    "{$product->name} (sisa {$product->stock}, status {$product->stock_status})"
+            )
             ->values();
 
         $lines = [];
-        $lines[] = "- Total omzet 30 hari terakhir: Rp" . number_format($totalOmzet, 0, ',', '.');
+
+        $lines[] = '- Total omzet 30 hari terakhir: Rp'
+            . number_format($totalOmzet, 0, ',', '.');
+
         $lines[] = "- Jumlah transaksi: {$totalTransaksi}";
-        $lines[] = '- Produk terlaris: ' . ($bestSeller->isEmpty()
-            ? 'belum ada data penjualan'
-            : $bestSeller->map(fn ($p) => "{$p['name']} ({$p['qty']} unit)")->join(', '));
-        $lines[] = '- Stok yang perlu perhatian: ' . ($criticalStock->isEmpty()
-            ? 'tidak ada, semua stok aman'
-            : $criticalStock->join(', '));
+
+        $lines[] = '- Produk terlaris: ' . (
+            $bestSeller->isEmpty()
+                ? 'belum ada data penjualan'
+                : $bestSeller
+                    ->map(
+                        fn ($product) =>
+                            "{$product['name']} ({$product['qty']} unit)"
+                    )
+                    ->join(', ')
+        );
+
+        $lines[] = '- Stok yang perlu perhatian: ' . (
+            $criticalStock->isEmpty()
+                ? 'tidak ada, semua stok aman'
+                : $criticalStock->join(', ')
+        );
 
         return implode("\n", $lines);
     }
