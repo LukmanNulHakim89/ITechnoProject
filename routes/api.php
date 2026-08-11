@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\InventoryLogController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\InsightController;
+use App\Http\Controllers\Api\AdvisorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,6 +51,9 @@ Route::middleware('auth:sanctum')->group(function () {
     */
 
     Route::middleware('business.owner')->group(function () {
+    Route::get('/businesses/{business}/insights', [InsightController::class, 'index']);
+    Route::post('/businesses/{business}/insights/generate', [InsightController::class, 'generate']);
+    Route::post('/businesses/{business}/advisor', [AdvisorController::class, 'ask']);
 
         /*
         |--------------------------------------------------------------------------
@@ -148,27 +153,27 @@ Route::middleware('auth:sanctum')->group(function () {
     | Product Resources
     |--------------------------------------------------------------------------
     */
+    Route::middleware('product.owner')->group(function () {
+        Route::get(
+            '/products/{product}',
+            [ProductController::class, 'show']
+        );
 
-    Route::get(
-        '/products/{product}',
-        [ProductController::class, 'show']
-    );
+        Route::put(
+            '/products/{product}',
+            [ProductController::class, 'update']
+        );
 
-    Route::put(
-        '/products/{product}',
-        [ProductController::class, 'update']
-    );
+        Route::patch(
+            '/products/{product}',
+            [ProductController::class, 'update']
+        );
 
-    Route::patch(
-        '/products/{product}',
-        [ProductController::class, 'update']
-    );
-
-    Route::delete(
-        '/products/{product}',
-        [ProductController::class, 'destroy']
-    );
-
+        Route::delete(
+            '/products/{product}',
+            [ProductController::class, 'destroy']
+        );
+    });
 
     /*
     |--------------------------------------------------------------------------
