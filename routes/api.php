@@ -1,53 +1,254 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\TransactionController;
+
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\InventoryLogController;
-use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\TransactionController;
 
-// Product
-Route::get('/businesses/{business}/products', [ProductController::class, 'index']);
-Route::post('/businesses/{business}/products', [ProductController::class, 'store']);
-Route::get('/products/{product}', [ProductController::class, 'show']);
-Route::put('/products/{product}', [ProductController::class, 'update']);
-Route::patch('/products/{product}', [ProductController::class, 'update']);
-Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+/*
+|--------------------------------------------------------------------------
+| Authentication - Public
+|--------------------------------------------------------------------------
+*/
 
-// Transaction
-Route::get('/businesses/{business}/transactions', [TransactionController::class, 'index']);
-Route::post('/businesses/{business}/transactions', [TransactionController::class, 'store']);
-Route::get('/transactions/{transaction}', [TransactionController::class, 'show']);
-Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy']);
+Route::post('/auth/register', [AuthController::class, 'register']);
+Route::post('/auth/login', [AuthController::class, 'login']);
 
-// Customer
-Route::get('/businesses/{business}/customers', [CustomerController::class, 'index']);
-Route::post('/businesses/{business}/customers', [CustomerController::class, 'store']);
-Route::get('/customers/{customer}', [CustomerController::class, 'show']);
-Route::put('/customers/{customer}', [CustomerController::class, 'update']);
-Route::patch('/customers/{customer}', [CustomerController::class, 'update']);
-Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
 
-// Expense
-Route::get('/businesses/{business}/expenses', [ExpenseController::class, 'index']);
-Route::post('/businesses/{business}/expenses', [ExpenseController::class, 'store']);
-Route::get('/expenses/{expense}', [ExpenseController::class, 'show']);
-Route::put('/expenses/{expense}', [ExpenseController::class, 'update']);
-Route::patch('/expenses/{expense}', [ExpenseController::class, 'update']);
-Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy']);
+/*
+|--------------------------------------------------------------------------
+| Protected Routes
+|--------------------------------------------------------------------------
+*/
 
-// Inventory Logs
-Route::get(
-    '/businesses/{business}/inventory-logs',
-    [InventoryLogController::class, 'index']
-);
+Route::middleware('auth:sanctum')->group(function () {
 
-Route::get(
-    '/inventory-logs/{inventoryLog}',
-    [InventoryLogController::class, 'show']
-);
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
 
-// Dashboard
-Route::get('/businesses/{business}/dashboard', [DashboardController::class, 'index']);
+    Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Business Owner Routes
+    |--------------------------------------------------------------------------
+    |
+    | Semua endpoint yang menggunakan {business} hanya dapat
+    | diakses oleh pemilik business tersebut.
+    |
+    */
+
+    Route::middleware('business.owner')->group(function () {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Products
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/businesses/{business}/products',
+            [ProductController::class, 'index']
+        );
+
+        Route::post(
+            '/businesses/{business}/products',
+            [ProductController::class, 'store']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Transactions
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/businesses/{business}/transactions',
+            [TransactionController::class, 'index']
+        );
+
+        Route::post(
+            '/businesses/{business}/transactions',
+            [TransactionController::class, 'store']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customers
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/businesses/{business}/customers',
+            [CustomerController::class, 'index']
+        );
+
+        Route::post(
+            '/businesses/{business}/customers',
+            [CustomerController::class, 'store']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Expenses
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/businesses/{business}/expenses',
+            [ExpenseController::class, 'index']
+        );
+
+        Route::post(
+            '/businesses/{business}/expenses',
+            [ExpenseController::class, 'store']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Inventory Logs
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/businesses/{business}/inventory-logs',
+            [InventoryLogController::class, 'index']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Dashboard
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/businesses/{business}/dashboard',
+            [DashboardController::class, 'index']
+        );
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Product Resources
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/products/{product}',
+        [ProductController::class, 'show']
+    );
+
+    Route::put(
+        '/products/{product}',
+        [ProductController::class, 'update']
+    );
+
+    Route::patch(
+        '/products/{product}',
+        [ProductController::class, 'update']
+    );
+
+    Route::delete(
+        '/products/{product}',
+        [ProductController::class, 'destroy']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Transaction Resources
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/transactions/{transaction}',
+        [TransactionController::class, 'show']
+    );
+
+    Route::delete(
+        '/transactions/{transaction}',
+        [TransactionController::class, 'destroy']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Customer Resources
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/customers/{customer}',
+        [CustomerController::class, 'show']
+    );
+
+    Route::put(
+        '/customers/{customer}',
+        [CustomerController::class, 'update']
+    );
+
+    Route::patch(
+        '/customers/{customer}',
+        [CustomerController::class, 'update']
+    );
+
+    Route::delete(
+        '/customers/{customer}',
+        [CustomerController::class, 'destroy']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Expense Resources
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/expenses/{expense}',
+        [ExpenseController::class, 'show']
+    );
+
+    Route::put(
+        '/expenses/{expense}',
+        [ExpenseController::class, 'update']
+    );
+
+    Route::patch(
+        '/expenses/{expense}',
+        [ExpenseController::class, 'update']
+    );
+
+    Route::delete(
+        '/expenses/{expense}',
+        [ExpenseController::class, 'destroy']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Inventory Log Resources
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/inventory-logs/{inventoryLog}',
+        [InventoryLogController::class, 'show']
+    );
+});
