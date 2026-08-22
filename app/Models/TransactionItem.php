@@ -13,19 +13,20 @@ class TransactionItem extends Model
         'product_id',
         'quantity',
         'selling_price',
+        'cost_price',
         'subtotal',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'selling_price' => 'decimal:2',
+        'cost_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
 
     protected static function booted(): void
     {
-        // Subtotal selalu quantity * selling_price, dihitung otomatis
-        // supaya tidak bisa tidak-sinkron kalau ada input manual yang salah.
+        // Subtotal selalu quantity * selling_price.
         static::saving(function (TransactionItem $item) {
             $item->subtotal = $item->quantity * $item->selling_price;
         });

@@ -47,15 +47,15 @@ class TransactionController extends Controller
      *
      * Body:
      * {
-     *   "customer_id": 3,              // opsional
+     *   "customer_id": 3,
      *   "items": [
      *     { "product_id": 1, "quantity": 2 },
      *     { "product_id": 4, "quantity": 1 }
      *   ]
      * }
      *
-     * selling_price diambil otomatis dari harga produk saat ini
-     * (bukan input manual), supaya tidak bisa dimanipulasi dari luar.
+     * selling_price dan cost_price diambil otomatis dari produk
+     * saat transaksi dibuat.
      */
     public function store(Request $request, Business $business): JsonResponse
     {
@@ -84,7 +84,9 @@ class TransactionController extends Controller
             $transaction = DB::transaction(function () use ($validated, $business) {
                 // Lock baris produk yang terlibat supaya aman dari race condition
                 // kalau ada 2 transaksi bersamaan untuk produk yang sama.
-                $productIds = collect($validated['items'])->pluck('product_id')->unique();
+                $productIds = collect($validated['items'])
+                    ->pluck('product_id')
+                    ->unique();
 
                 $products = Product::where('business_id', $business->id)
                     ->whereIn('id', $productIds)
@@ -113,7 +115,7 @@ class TransactionController extends Controller
                 $transaction = $business->transactions()->create([
                     'customer_id' => $validated['customer_id'] ?? null,
                     'transaction_date' => $validated['transaction_date'] ?? now(),
-                    'total_amount' => 0, // dihitung ulang otomatis setelah item dibuat
+                    'total_amount' => 0,
                 ]);
 
                 foreach ($validated['items'] as $item) {
@@ -123,7 +125,7 @@ class TransactionController extends Controller
                         'product_id' => $product->id,
                         'quantity' => $item['quantity'],
                         'selling_price' => $product->selling_price,
-                        // subtotal dihitung otomatis lewat model event TransactionItem
+                        'cost_price' => $product->cost_price,
                     ]);
 
                     $product->decrement('stock', $item['quantity']);
@@ -185,18 +187,22 @@ class TransactionController extends Controller
         return [
             'id' => $transaction->id,
             'business_id' => $transaction->business_id,
+
             'customer' => $transaction->customer ? [
                 'id' => $transaction->customer->id,
                 'name' => $transaction->customer->name,
             ] : null,
+
             'transaction_date' => $transaction->transaction_date,
             'total_amount' => (float) $transaction->total_amount,
+
             'items' => $transaction->items->map(fn ($item) => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
                 'product_name' => $item->product?->name,
                 'quantity' => $item->quantity,
                 'selling_price' => (float) $item->selling_price,
+                'cost_price' => (float) $item->cost_price,
                 'subtotal' => (float) $item->subtotal,
             ]),
         ];
