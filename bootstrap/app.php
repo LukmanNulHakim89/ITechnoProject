@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'product.owner' => \App\Http\Middleware\EnsureProductOwner::class,
             'expense.owner' => \App\Http\Middleware\EnsureExpenseOwner::class,
             'inventorylog.owner' => \App\Http\Middleware\EnsureInventoryLogOwner::class,
+            'transaction.owner' => \App\Http\Middleware\EnsureTransactionOwner::class,
+            'customer.owner' => \App\Http\Middleware\EnsureCustomerOwner::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

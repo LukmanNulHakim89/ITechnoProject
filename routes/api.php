@@ -207,15 +207,11 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get(
-        '/transactions/{transaction}',
-        [TransactionController::class, 'show']
-    );
+    Route::middleware('transaction.owner')->group(function () {
+        Route::get('/transactions/{transaction}', [TransactionController::class, 'show']);
+        Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy']);
+    });
 
-    Route::delete(
-        '/transactions/{transaction}',
-        [TransactionController::class, 'destroy']
-    );
 
 
     /*
@@ -224,26 +220,12 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get(
-        '/customers/{customer}',
-        [CustomerController::class, 'show']
-    );
-
-    Route::put(
-        '/customers/{customer}',
-        [CustomerController::class, 'update']
-    );
-
-    Route::patch(
-        '/customers/{customer}',
-        [CustomerController::class, 'update']
-    );
-
-    Route::delete(
-        '/customers/{customer}',
-        [CustomerController::class, 'destroy']
-    );
-
+    Route::middleware('customer.owner')->group(function () {
+        Route::get('/customers/{customer}', [CustomerController::class, 'show']);
+        Route::put('/customers/{customer}', [CustomerController::class, 'update']);
+        Route::patch('/customers/{customer}', [CustomerController::class, 'update']);
+        Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
+    });
 
     /*
     |--------------------------------------------------------------------------
