@@ -1,0 +1,59 @@
+:root {
+    /* =========================
+       BRAND
+    ========================= */
+
+    --color-primary: #4264D0;
+    --color-primary-hover: #3657C2;
+
+
+    /* =========================
+       BACKGROUND
+    ========================= */
+
+    --color-bg: #F5F7FB;
+    --color-surface: #FFFFFF;
+
+
+    /* =========================
+       TEXT
+    ========================= */
+
+    --color-text-dark: #1E293B;
+    --color-text-muted: #64748B;
+
+
+    /* =========================
+       BORDER
+    ========================= */
+
+    --color-border: #D8E0EC;
+
+
+    /* =========================
+       STATUS
+       Nanti digunakan Dashboard
+    ========================= */
+
+    --color-success: #22C55E;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+
+
+    /* =========================
+       RADIUS
+    ========================= */
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+
+
+    /* =========================
+       SHADOW
+    ========================= */
+
+    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
