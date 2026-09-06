@@ -53,12 +53,6 @@ const Sidebar = ({ activeMenu = "Dashboard" }) => {
           <span>Reports</span>
         </Link>
 
-        {/* Update Link ke /settings dan tambahkan logic activeMenu */}
-        <Link to="/settings" className={`menu-item ${activeMenu === 'Settings' ? 'active' : ''}`}>
-          <img src="/images/dashboard/setting.png" alt="Settings" />
-          <span>Settings</span>
-        </Link>
-
         {/* Atribut style="..." dihapus agar class "menu-item" dan "btn-logout" bisa menerapkan efek hover dari CSS */}
         <button
           type="button"
