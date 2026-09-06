@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import '../../styles/dashboard.css';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
@@ -14,9 +15,9 @@ const Transactions = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState('');
-  
+
   const [formData, setFormData] = useState({
-    product_mode: 'select', // 'select' atau 'custom'
+    product_mode: 'select',
     product_id: '',
     custom_name: '',
     custom_price: '',
@@ -39,8 +40,7 @@ const Transactions = () => {
 
       setTransactions(txList);
       setProducts(prodList);
-      
-      // Default product_id jika ada produk
+
       if (prodList.length > 0 && !formData.product_id) {
         setFormData((prev) => ({
           ...prev,
@@ -67,13 +67,12 @@ const Transactions = () => {
   const isCustom = formData.product_mode === 'custom' || products.length === 0;
   const selectedProduct = !isCustom ? products.find((p) => String(p.id) === String(formData.product_id)) : null;
 
-  const unitPrice = isCustom 
-    ? Number(formData.custom_price || 0) 
+  const unitPrice = isCustom
+    ? Number(formData.custom_price || 0)
     : Number(selectedProduct?.selling_price || 0);
 
   const estimatedTotal = unitPrice * Number(formData.quantity || 1);
 
-  // Handle submit transaksi ke backend
   const handleAddTransaction = async (e) => {
     e.preventDefault();
     setModalError('');
@@ -130,8 +129,8 @@ const Transactions = () => {
   };
 
   const addTransactionBtn = (
-    <button 
-      className="btn-add" 
+    <button
+      className="btn-add"
       onClick={() => {
         setModalError('');
         if (products.length === 0) {
@@ -169,16 +168,16 @@ const Transactions = () => {
             <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '16px' }}>
               Belum ada transaksi tercatat.
             </p>
-            <button 
-              className="btn-add" 
-              style={{ display: 'inline-block' }} 
+            <button
+              className="btn-add"
+              style={{ display: 'inline-block' }}
               onClick={() => setIsModalOpen(true)}
             >
               + Catat Transaksi Pertama
             </button>
           </div>
         ) : (
-          <table className="data-table">
+          <table className="transaction-table">
             <thead>
               <tr>
                 <th>Customer</th>
@@ -200,7 +199,7 @@ const Transactions = () => {
                       : '-'}
                   </td>
                   <td>
-                    <span className="payment-badge">{tx.payment_method ?? 'Cash'}</span>
+                    <span className="pay-badge">{tx.payment_method ?? 'Cash'}</span>
                   </td>
                   <td style={{ fontWeight: '600', color: '#2563eb' }}>
                     Rp {Number(tx.total_amount).toLocaleString('id-ID')}
@@ -208,12 +207,12 @@ const Transactions = () => {
                   <td style={{ color: '#64748b', fontSize: '13px' }}>
                     {tx.transaction_date
                       ? new Date(tx.transaction_date).toLocaleString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
                       : '-'}
                   </td>
                 </tr>
@@ -252,7 +251,6 @@ const Transactions = () => {
             )}
 
             <form onSubmit={handleAddTransaction}>
-              {/* Opsi Pilihan Produk: Pilih dari Daftar atau Ketik Langsung */}
               {products.length > 0 && (
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                   <button
