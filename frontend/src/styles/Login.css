@@ -1,0 +1,222 @@
+/* src/pages/auth/Login.css */
+
+.login-container {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #f4f5f7;
+}
+
+/* --- Bagian Kiri --- */
+.login-left {
+  flex: 1;
+  display: flex;
+  background-color: #4b6bfb; 
+}
+
+.login-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Memastikan poster memenuhi area kiri tanpa merusak rasio */
+  object-position: center;
+}
+
+/* --- Bagian Kanan --- */
+.login-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 420px;
+  background-color: transparent;
+}
+
+.form-container h2 {
+  font-size: 32px;
+  color: #1a1a24;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #6b7280;
+  margin-bottom: 32px;
+  font-size: 15px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+  height: 52px;
+  transition: border-color 0.2s;
+}
+
+.input-group:focus-within {
+  border-color: #4b6bfb;
+}
+
+.input-group input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 15px;
+  background: transparent;
+  color: #374151;
+}
+
+.toggle-password {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: -12px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.forgot-password {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}
+
+/* --- Tombol --- */
+.btn-primary {
+  width: 100%;
+  background-color: #4b6bfb;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  height: 52px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #3a54d6;
+}
+
+.btn-google {
+  width: 100%;
+  background-color: white;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  height: 52px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  transition: background-color 0.2s;
+}
+
+.btn-google:hover {
+  background-color: #f9fafb;
+}
+
+.google-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.create-account {
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.create-account a {
+  color: #4b6bfb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.create-account a:hover {
+  text-decoration: underline;
+}
+
+/* --- Responsivitas Dasar --- */
+@media (max-width: 768px) {
+  .login-left {
+    display: none; /* Menyembunyikan poster di layar HP */
+  }
+}
+
+/* Styling untuk gambar ikon input (User & Lock) */
+.input-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  margin-right: 12px;
+  opacity: 0.7; /* Opsi: memberikan efek sedikit transparan agar tidak terlalu mencolok */
+}
+
+/* Styling khusus untuk ikon mata pada password */
+.toggle-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.toggle-icon:hover {
+  opacity: 1;
+}
+
+/* Pastikan tombol mata berada di tengah rapi */
+.toggle-password {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
