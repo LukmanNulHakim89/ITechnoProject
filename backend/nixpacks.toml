@@ -6,6 +6,5 @@ nixPkgs = [
     "php84",
     "php84Packages.composer",
     "php84Extensions.pdo_pgsql",
-    "php84Extensions.pgsql",
-    "postgresql"
+    "php84Extensions.pgsql"
 ]
