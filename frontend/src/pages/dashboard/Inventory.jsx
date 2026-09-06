@@ -15,16 +15,61 @@ const Inventory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  // State untuk modal Stock Movement
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    product_id: '',
+    type: 'IN', // 'IN' untuk penambahan stok, 'OUT' untuk pengurangan
+    quantity: '',
+  });
+
+  // Dipisahkan menjadi fungsi agar bisa dipanggil ulang setelah submit
+  const fetchInventory = async () => {
     if (!businessId) return;
-    api.get(`/businesses/${businessId}/products`)
-      .then((res) => setProducts(res.data ?? []))
-      .catch((err) => setError(err.message || 'Gagal memuat data stok.'))
-      .finally(() => setLoading(false));
+    setLoading(true);
+    try {
+      const res = await api.get(`/businesses/${businessId}/products`);
+      setProducts(res.data ?? []);
+    } catch (err) {
+      setError(err.message || 'Gagal memuat data stok.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInventory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId]);
 
+  // Fungsi handle submit stock movement
+  const handleStockMovement = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const payload = {
+        product_id: formData.product_id,
+        type: formData.type,
+        quantity: Number(formData.quantity)
+      };
+
+      // Sesuaikan endpoint ini dengan struktur API backend Anda
+      await api.post(`/businesses/${businessId}/stock-movements`, payload);
+
+      setFormData({ product_id: '', type: 'IN', quantity: '' });
+      setIsModalOpen(false);
+      fetchInventory(); // Refresh data stok
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Gagal mencatat pergerakan stok.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const addStockBtn = (
-    <button className="btn-add" title="Backend belum punya endpoint untuk mencatat stock movement manual">
+    <button className="btn-add" onClick={() => setIsModalOpen(true)}>
       + Stock movement
     </button>
   );
@@ -62,9 +107,6 @@ const Inventory = () => {
                     <span className={`dot ${dot}`}></span>
                     <div>
                       <h5>{item.name}</h5>
-                      {/* Estimasi "hari tersisa" butuh data rata-rata pemakaian
-                          harian yang belum dihitung backend — untuk sekarang
-                          tampilkan jumlah stok & minimum saja. */}
                       <p>{item.stock} units (minimum {item.minimum_stock})</p>
                     </div>
                   </div>
@@ -75,6 +117,70 @@ const Inventory = () => {
           </ul>
         )}
       </div>
+
+      {/* Komponen Modal Stock Movement */}
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3 style={{ marginTop: 0, color: '#1e293b' }}>Record Stock Movement</h3>
+            <form onSubmit={handleStockMovement}>
+              
+              <div className="form-group">
+                <label>Product</label>
+                <select 
+                  value={formData.product_id}
+                  onChange={(e) => setFormData({...formData, product_id: e.target.value})}
+                  required
+                >
+                  <option value="" disabled>-- Select a Product --</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Movement Type</label>
+                <select 
+                  value={formData.type}
+                  onChange={(e) => setFormData({...formData, type: e.target.value})}
+                  required
+                >
+                  <option value="IN">Stock In (Add)</option>
+                  <option value="OUT">Stock Out (Reduce)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Quantity</label>
+                <input 
+                  type="number" 
+                  min="1"
+                  placeholder="e.g. 50"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({...formData, quantity: e.target.value})}
+                  required 
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  className="btn-cancel" 
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save Movement'}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

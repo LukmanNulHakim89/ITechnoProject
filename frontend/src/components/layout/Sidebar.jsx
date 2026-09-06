@@ -1,7 +1,16 @@
 import React from 'react';
-import { Link } from 'react-router-dom'; // Tambahkan import ini
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = ({ activeMenu = "Dashboard" }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -48,14 +57,23 @@ const Sidebar = ({ activeMenu = "Dashboard" }) => {
           <img src="/images/dashboard/setting.png" alt="Settings" />
           <span>Settings</span>
         </Link>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="menu-item btn-logout"
+          style={{ background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left', font: 'inherit' }}
+        >
+          <img src="/images/dashboard/logout.png" alt="Logout" />
+          <span>Logout</span>
+        </button>
       </div>
 
       <div className="sidebar-bottom">
         <div className="user-profile">
           <img src="/images/dashboard/profile.png" alt="Profile" className="avatar" />
           <div className="user-info">
-            <h4>Aramugam</h4>
-            <p>Warung Glodok</p>
+            <h4>{user?.name || 'Aramugam'}</h4>
+            <p>{user?.email || 'Kedai Kopi Nexora'}</p>
           </div>
         </div>
       </div>

@@ -16,6 +16,15 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // State baru untuk fitur Add Product
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    selling_price: '',
+    margin: ''
+  });
+
   async function loadProducts() {
     if (!businessId) return;
     setLoading(true);
@@ -51,12 +60,44 @@ const Products = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId]);
 
+  // Fungsi handle submit produk ke backend
+  const handleAddProduct = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const payload = {
+        name: formData.name,
+        selling_price: Number(formData.selling_price),
+        margin: Number(formData.margin)
+      };
+
+      await api.post(`/businesses/${businessId}/products`, payload);
+
+      setFormData({ name: '', selling_price: '', margin: '' });
+      setIsModalOpen(false);
+      loadProducts();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Gagal menambahkan produk baru.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Tombol aksi untuk membuka modal
+  const addProductBtn = (
+    <button className="btn-add" onClick={() => setIsModalOpen(true)}>
+      + Add product
+    </button>
+  );
+
   return (
     <DashboardLayout
       title="Products"
       subtitle="Understand which products drive revenue and margin."
       showSearch={false}
       activeMenu="Products"
+      actionButton={addProductBtn}
     >
       <div className="card transaction-card">
         <div className="card-header">
@@ -100,6 +141,67 @@ const Products = () => {
           </table>
         )}
       </div>
+
+      {/* Komponen Modal Add Product */}
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3 style={{ marginTop: 0, color: '#1e293b' }}>Add New Product</h3>
+            <form onSubmit={handleAddProduct}>
+              
+              <div className="form-group">
+                <label>Product Name</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Kopi Latte"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  required 
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Selling Price (Rp)</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  placeholder="e.g. 25000"
+                  value={formData.selling_price}
+                  onChange={(e) => setFormData({...formData, selling_price: e.target.value})}
+                  required 
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Margin (Rp)</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  placeholder="e.g. 15000"
+                  value={formData.margin}
+                  onChange={(e) => setFormData({...formData, margin: e.target.value})}
+                  required 
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  className="btn-cancel" 
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save Product'}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

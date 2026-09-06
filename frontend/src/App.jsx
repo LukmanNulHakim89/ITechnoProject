@@ -17,6 +17,7 @@ import Analytics from './pages/dashboard/Analytics';
 import AiAdvisor from './pages/dashboard/AiAdvisor';
 import Goals from './pages/dashboard/Goals';
 import Reports from './pages/dashboard/Reports';
+import Notifications from './pages/dashboard/Notifications';
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
           <Route path="/ai-advisor" element={<ProtectedRoute><AiAdvisor /></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         </Routes>
       </Router>
     </AuthProvider>
