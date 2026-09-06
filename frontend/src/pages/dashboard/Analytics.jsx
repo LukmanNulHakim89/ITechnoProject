@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/api';
+import RevenueChart from '../../components/dashboard/RevenueChart';
 
 const Analytics = () => {
   const { businessId } = useAuth();
@@ -11,7 +12,7 @@ const Analytics = () => {
     if (!businessId) return;
     api.get(`/businesses/${businessId}/products`)
       .then((res) => setProducts(res.data ?? []))
-      .catch(() => {});
+      .catch(() => { });
   }, [businessId]);
 
   // Margin dalam persen: (selling_price - cost_price) / selling_price * 100
@@ -30,30 +31,16 @@ const Analytics = () => {
       showSearch={false}
       activeMenu="Analytics"
     >
-      <div className="dashboard-grid">
-        {/* Revenue trend harian: backend saat ini hanya menyediakan ringkasan
-            per-periode (dashboard endpoint), bukan breakdown per-hari, jadi
-            grafik ini masih placeholder sampai ada endpoint time-series. */}
-        <div className="card chart-card">
-          <div className="card-header">
-            <div>
-              <h4 style={{ fontWeight: '700', color: '#1a1a24' }}>Revenue trend</h4>
-              <p style={{ fontSize: '12px', color: '#9ca3af' }}>Last 7 days</p>
-            </div>
-            <button className="more-btn">...</button>
-          </div>
+      {/* Menggunakan flexbox untuk membagi porsi layar menjadi 2:1 */}
+      <div className="dashboard-grid" style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
 
-          <div className="chart-placeholder" style={{ height: '320px' }}>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ margin: '0 0 8px 0' }}>Grafik tren harian belum tersedia</p>
-              <p style={{ fontSize: '12px', opacity: 0.7 }}>
-                Backend perlu endpoint breakdown omzet per hari untuk fitur ini
-              </p>
-            </div>
-          </div>
+        {/* 1. BAGIAN KIRI: REVENUE CHART (Porsi lebih lebar) */}
+        <div style={{ flex: 2, minWidth: 0 }}>
+          <RevenueChart />
         </div>
 
-        <div className="card chart-card">
+        {/* 2. BAGIAN KANAN: PRODUCT MARGINS (Dipertahankan dari kode asli) */}
+        <div className="card chart-card" style={{ flex: 1, minWidth: 0 }}>
           <div className="card-header">
             <div>
               <h4 style={{ fontWeight: '700', color: '#1a1a24' }}>Product margins</h4>
@@ -101,6 +88,7 @@ const Analytics = () => {
             </div>
           </div>
         </div>
+
       </div>
     </DashboardLayout>
   );
