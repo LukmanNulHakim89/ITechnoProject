@@ -56,20 +56,42 @@ Kalau data tidak cukup untuk menjawab spesifik, katakan dengan jelas
 data apa yang masih kurang.
 PROMPT;
 
-        $response = Http::timeout(30)->post(
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $apiKey,
-            [
-                'contents' => [
-                    [
-                        'parts' => [
-                            [
-                                'text' => $prompt,
-                            ],
-                        ],
+        $payload = [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt],
                     ],
                 ],
-            ]
-        );
+            ],
+        ];
+
+        $geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' . $apiKey;
+
+        $response  = null;
+        $lastError = null;
+        $maxRetry  = 2;
+
+        for ($attempt = 1; $attempt <= $maxRetry; $attempt++) {
+            try {
+                $response = Http::timeout(60)
+                    ->withOptions(['curl' => [CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4]])
+                    ->post($geminiUrl, $payload);
+                break; // sukses, keluar dari loop
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                $lastError = $e->getMessage();
+                if ($attempt < $maxRetry) {
+                    sleep(2); // tunggu 2 detik sebelum retry
+                }
+            }
+        }
+
+        if ($response === null) {
+            return response()->json([
+                'message' => 'AI Advisor tidak merespons setelah beberapa percobaan. Coba lagi nanti.',
+                'error'   => $lastError,
+            ], 504);
+        }
 
         if ($response->failed()) {
             return response()->json([
@@ -88,10 +110,7 @@ PROMPT;
         ]);
     }
 
-    /**
-     * Mengambil ringkasan data bisnis 30 hari terakhir
-     * untuk dijadikan context AI.
-     */
+    
     private function buildBusinessContext(Business $business): string
     {
         $from = now()->subDays(30);

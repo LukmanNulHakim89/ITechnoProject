@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\InsightController;
 use App\Http\Controllers\Api\AdvisorController;
+use App\Http\Controllers\Api\BusinessController;
 
 
 /*
@@ -39,6 +40,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Businesses
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/businesses', [BusinessController::class, 'index']);
+    Route::post('/businesses', [BusinessController::class, 'store']);
 
 
     /*
