@@ -19,8 +19,7 @@ const Sidebar = ({ activeMenu = "Dashboard" }) => {
 
       <div className="sidebar-menu">
         <p className="menu-label">WORKSPACE</p>
-        
-        {/* Ganti tag <a> menjadi <Link> dan href menjadi to */}
+
         <Link to="/dashboard" className={`menu-item ${activeMenu === 'Dashboard' ? 'active' : ''}`}>
           <img src="/images/dashboard/Dashboard.png" alt="Dashboard" />
           <span>Dashboard</span>
@@ -53,15 +52,18 @@ const Sidebar = ({ activeMenu = "Dashboard" }) => {
           <img src="/images/dashboard/Reports.png" alt="Reports" />
           <span>Reports</span>
         </Link>
-        <Link to="#" className="menu-item">
+
+        {/* Update Link ke /settings dan tambahkan logic activeMenu */}
+        <Link to="/settings" className={`menu-item ${activeMenu === 'Settings' ? 'active' : ''}`}>
           <img src="/images/dashboard/setting.png" alt="Settings" />
           <span>Settings</span>
         </Link>
+
+        {/* Atribut style="..." dihapus agar class "menu-item" dan "btn-logout" bisa menerapkan efek hover dari CSS */}
         <button
           type="button"
           onClick={handleLogout}
           className="menu-item btn-logout"
-          style={{ background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left', font: 'inherit' }}
         >
           <img src="/images/dashboard/logout.png" alt="Logout" />
           <span>Logout</span>
