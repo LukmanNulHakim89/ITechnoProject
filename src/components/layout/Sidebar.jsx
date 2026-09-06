@@ -2,6 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom'; // Tambahkan import ini
 
 const Sidebar = ({ activeMenu = "Dashboard" }) => {
+const handleLogout = () => {
+    navigate('/login');
+  };
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -48,6 +52,10 @@ const Sidebar = ({ activeMenu = "Dashboard" }) => {
           <img src="/images/dashboard/setting.png" alt="Settings" />
           <span>Settings</span>
         </Link>
+        <button onClick={handleLogout} className="menu-item btn-logout">
+          <img src="/images/dashboard/logout.png" alt="Logout" />
+          <span>Logout</span>
+        </button>
       </div>
 
       <div className="sidebar-bottom">
