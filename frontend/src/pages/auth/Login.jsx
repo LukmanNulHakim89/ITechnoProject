@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import GoogleAuthModal from '../../components/auth/GoogleAuthModal';
 import '../../styles/Login.css';
 
 const Login = () => {
@@ -10,6 +11,7 @@ const Login = () => {
   const [isPasswordTouched, setIsPasswordTouched] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -102,11 +104,20 @@ const Login = () => {
               {isSubmitting ? 'Logging in...' : 'Login'}
             </button>
 
-            <button type="button" className="btn-google">
+            <button
+              type="button"
+              className="btn-google"
+              onClick={() => setIsGoogleModalOpen(true)}
+            >
               <img src="/images/auth/google.png" alt="Google Icon" className="google-icon-img" />
               Login with Google
             </button>
           </form>
+
+          <GoogleAuthModal
+            isOpen={isGoogleModalOpen}
+            onClose={() => setIsGoogleModalOpen(false)}
+          />
 
           <p className="create-account">
             Don't have an account? <Link to="/register">Create account</Link>

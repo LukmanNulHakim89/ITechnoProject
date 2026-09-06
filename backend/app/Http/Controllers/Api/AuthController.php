@@ -68,6 +68,52 @@ class AuthController extends Controller
     }
 
     /**
+     * POST /api/auth/google
+     * Login atau register otomatis menggunakan akun Google.
+     */
+    public function googleLogin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'google_id' => ['nullable', 'string', 'max:255'],
+            'avatar' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if (!$user) {
+            $name = !empty($validated['name']) ? $validated['name'] : explode('@', $validated['email'])[0];
+            $user = User::create([
+                'name' => $name,
+                'email' => $validated['email'],
+                'password_hash' => Hash::make(\Illuminate\Support\Str::random(32)),
+            ]);
+        }
+
+        // Pastikan user memiliki minimal 1 bisnis agar bisa langsung akses dashboard
+        $business = $user->businesses()->first();
+        if (!$business) {
+            $business = $user->businesses()->create([
+                'name' => ($user->name ?? 'Nexora') . ' Store',
+                'category' => 'Retail',
+                'address' => 'Indonesia',
+            ]);
+        }
+
+        $token = $user->createToken('google-auth-token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login Google berhasil.',
+            'data' => [
+                'user' => $user,
+                'business_id' => $business->id,
+                'token' => $token,
+            ],
+        ]);
+    }
+
+    /**
      * GET /api/auth/me
      */
     public function me(Request $request): JsonResponse

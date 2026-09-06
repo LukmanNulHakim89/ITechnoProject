@@ -12,6 +12,7 @@ class Transaction extends Model
         'business_id',
         'customer_id',
         'transaction_date',
+        'payment_method',
         'total_amount',
     ];
 

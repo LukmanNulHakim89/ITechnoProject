@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\BusinessController;
 
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/google', [AuthController::class, 'googleLogin']);
 
 
 /*
@@ -137,6 +138,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get(
             '/businesses/{business}/inventory-logs',
             [InventoryLogController::class, 'index']
+        );
+
+        Route::post(
+            '/businesses/{business}/inventory-logs',
+            [InventoryLogController::class, 'store']
+        );
+
+        Route::post(
+            '/businesses/{business}/stock-movements',
+            [InventoryLogController::class, 'store']
         );
 
 

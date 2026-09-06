@@ -23,6 +23,7 @@ class TransactionController extends Controller
         $transactions = $business->transactions()
             ->with('items.product', 'customer')
             ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
             ->get();
 
         return response()->json([
@@ -45,26 +46,20 @@ class TransactionController extends Controller
     /**
      * POST /api/businesses/{business}/transactions
      *
-     * Body:
-     * {
-     *   "customer_id": 3,
-     *   "items": [
-     *     { "product_id": 1, "quantity": 2 },
-     *     { "product_id": 4, "quantity": 1 }
-     *   ]
-     * }
-     *
-     * selling_price dan cost_price diambil otomatis dari produk
-     * saat transaksi dibuat.
+     * Mendukung penambahan transaksi baik via product_id maupun nama produk (product_name).
      */
     public function store(Request $request, Business $business): JsonResponse
     {
         $validated = $request->validate([
             'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
             'transaction_date' => ['nullable', 'date'],
+            'payment_method' => ['nullable', 'string', 'max:50'],
+            'total_amount' => ['nullable', 'numeric', 'min:0'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer'],
+            'items.*.product_id' => ['nullable', 'integer'],
+            'items.*.product_name' => ['nullable', 'string', 'max:150'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.selling_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         // Pastikan customer (kalau diisi) memang milik business ini.
@@ -82,50 +77,64 @@ class TransactionController extends Controller
 
         try {
             $transaction = DB::transaction(function () use ($validated, $business) {
-                // Lock baris produk yang terlibat supaya aman dari race condition
-                // kalau ada 2 transaksi bersamaan untuk produk yang sama.
-                $productIds = collect($validated['items'])
-                    ->pluck('product_id')
-                    ->unique();
+                $transaction = $business->transactions()->create([
+                    'customer_id' => $validated['customer_id'] ?? null,
+                    'transaction_date' => $validated['transaction_date'] ?? now(),
+                    'payment_method' => $validated['payment_method'] ?? 'Cash',
+                    'total_amount' => 0,
+                ]);
 
-                $products = Product::where('business_id', $business->id)
-                    ->whereIn('id', $productIds)
-                    ->lockForUpdate()
-                    ->get()
-                    ->keyBy('id');
-
-                // Validasi semua produk ada di business ini dan stok cukup,
-                // SEBELUM ada perubahan apapun ke database.
                 foreach ($validated['items'] as $item) {
-                    $product = $products->get($item['product_id']);
+                    $product = null;
+
+                    if (!empty($item['product_id'])) {
+                        $product = Product::where('business_id', $business->id)
+                            ->where('id', $item['product_id'])
+                            ->lockForUpdate()
+                            ->first();
+                    } elseif (!empty($item['product_name'])) {
+                        $trimmedName = trim($item['product_name']);
+                        $product = Product::where('business_id', $business->id)
+                            ->whereRaw('LOWER(name) = ?', [strtolower($trimmedName)])
+                            ->lockForUpdate()
+                            ->first();
+
+                        if (!$product) {
+                            $itemSellingPrice = $item['selling_price'] ?? (
+                                (!empty($validated['total_amount']) && $item['quantity'] > 0)
+                                    ? round($validated['total_amount'] / $item['quantity'], 2)
+                                    : 10000
+                            );
+                            $product = $business->products()->create([
+                                'name' => $trimmedName,
+                                'selling_price' => $itemSellingPrice,
+                                'cost_price' => round($itemSellingPrice * 0.7, 2),
+                                'stock' => max(20, $item['quantity'] + 10),
+                                'minimum_stock' => 5,
+                            ]);
+                        }
+                    }
 
                     if (!$product) {
                         throw ValidationException::withMessages([
-                            'items' => "Produk ID {$item['product_id']} tidak ditemukan pada bisnis ini.",
+                            'items' => 'Produk tidak ditemukan pada bisnis ini. Pastikan memilih produk yang ada atau isi nama produk.',
                         ]);
                     }
 
                     if ($product->stock < $item['quantity']) {
                         throw ValidationException::withMessages([
-                            'items' => "Stok {$product->name} tidak cukup (tersisa {$product->stock}, diminta {$item['quantity']}).",
+                            'items' => "Stok {$product->name} tidak mencukupi (tersisa {$product->stock}, diminta {$item['quantity']}).",
                         ]);
                     }
-                }
 
-                $transaction = $business->transactions()->create([
-                    'customer_id' => $validated['customer_id'] ?? null,
-                    'transaction_date' => $validated['transaction_date'] ?? now(),
-                    'total_amount' => 0,
-                ]);
-
-                foreach ($validated['items'] as $item) {
-                    $product = $products->get($item['product_id']);
+                    $sellingPrice = $item['selling_price'] ?? $product->selling_price;
+                    $costPrice = $product->cost_price ?? 0;
 
                     $transaction->items()->create([
                         'product_id' => $product->id,
                         'quantity' => $item['quantity'],
-                        'selling_price' => $product->selling_price,
-                        'cost_price' => $product->cost_price,
+                        'selling_price' => $sellingPrice,
+                        'cost_price' => $costPrice,
                     ]);
 
                     $product->decrement('stock', $item['quantity']);
@@ -137,6 +146,8 @@ class TransactionController extends Controller
                         'note' => "Terjual pada transaksi #{$transaction->id}",
                     ]);
                 }
+
+                $transaction->recalculateTotal();
 
                 return $transaction->refresh();
             });
@@ -192,6 +203,8 @@ class TransactionController extends Controller
                 'id' => $transaction->customer->id,
                 'name' => $transaction->customer->name,
             ] : null,
+            'customer_name' => $transaction->customer?->name ?? 'Walk-in Customer',
+            'payment_method' => $transaction->payment_method ?? 'Cash',
 
             'transaction_date' => $transaction->transaction_date,
             'total_amount' => (float) $transaction->total_amount,
@@ -199,7 +212,7 @@ class TransactionController extends Controller
             'items' => $transaction->items->map(fn ($item) => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
-                'product_name' => $item->product?->name,
+                'product_name' => $item->product?->name ?? ('Produk #' . $item->product_id),
                 'quantity' => $item->quantity,
                 'selling_price' => (float) $item->selling_price,
                 'cost_price' => (float) $item->cost_price,

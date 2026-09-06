@@ -39,10 +39,15 @@ class ProductController extends Controller
             'name' => ['required', 'string', 'max:150'],
             'category' => ['nullable', 'string', 'max:100'],
             'selling_price' => ['required', 'numeric', 'min:0'],
-            'cost_price' => ['required', 'numeric', 'min:0'],
+            'cost_price' => ['nullable', 'numeric', 'min:0'],
             'stock' => ['nullable', 'integer', 'min:0'],
             'minimum_stock' => ['nullable', 'integer', 'min:0'],
         ]);
+
+        if (!isset($validated['cost_price']) || $validated['cost_price'] === null) {
+            $margin = (float) $request->input('margin', 0);
+            $validated['cost_price'] = max(0, $validated['selling_price'] - $margin);
+        }
 
         $product = $business->products()->create($validated);
 

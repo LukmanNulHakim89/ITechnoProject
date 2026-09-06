@@ -80,6 +80,35 @@ export function AuthProvider({ children }) {
     return login(email, password);
   }
 
+  async function loginWithGoogle(googleData) {
+    const res = await api.post('/auth/google', googleData);
+    const token = res.data?.token ?? res.token;
+    const loggedInUser = res.data?.user ?? res.user;
+
+    localStorage.setItem('nexora_token', token);
+    localStorage.setItem('nexora_user', JSON.stringify(loggedInUser));
+    setUser(loggedInUser);
+
+    const bizId = res.data?.business_id ?? res.business_id;
+    if (bizId) {
+      setBusinessId(String(bizId));
+      localStorage.setItem('nexora_business_id', String(bizId));
+    } else {
+      try {
+        const businesses = await api.get('/businesses');
+        const first = businesses.data?.[0];
+        if (first) {
+          setBusinessId(String(first.id));
+          localStorage.setItem('nexora_business_id', String(first.id));
+        }
+      } catch (e) {
+        console.warn('Could not fetch businesses:', e);
+      }
+    }
+
+    return loggedInUser;
+  }
+
   async function logout() {
     try {
       await api.post('/auth/logout');
@@ -107,6 +136,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user,
     loading,
     login,
+    loginWithGoogle,
     register,
     logout,
     createBusiness,

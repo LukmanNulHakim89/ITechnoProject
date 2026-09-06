@@ -34,17 +34,21 @@ const Products = () => {
         api.get(`/businesses/${businessId}/transactions`),
       ]);
 
+      const txList = Array.isArray(txRes) ? txRes : (txRes?.data ?? []);
+      const prodList = Array.isArray(productRes) ? productRes : (productRes?.data ?? []);
+
       const soldByProduct = {};
-      (txRes.data ?? []).forEach((trx) => {
-        trx.items.forEach((item) => {
+      txList.forEach((trx) => {
+        (trx.items ?? []).forEach((item) => {
           soldByProduct[item.product_id] = (soldByProduct[item.product_id] ?? 0) + item.quantity;
         });
       });
 
-      const enriched = (productRes.data ?? []).map((p) => {
+      const enriched = prodList.map((p) => {
         const sold = soldByProduct[p.id] ?? 0;
-        const marginPercent = p.selling_price > 0 ? Math.round((p.margin / p.selling_price) * 100) : 0;
-        return { ...p, sold, marginPercent, ...performanceFor(marginPercent, sold) };
+        const margin = Number(p.margin ?? (p.selling_price - (p.cost_price ?? 0)));
+        const marginPercent = p.selling_price > 0 ? Math.round((margin / p.selling_price) * 100) : 0;
+        return { ...p, margin, sold, marginPercent, ...performanceFor(marginPercent, sold) };
       });
 
       setProducts(enriched);
@@ -66,10 +70,16 @@ const Products = () => {
     setIsSubmitting(true);
     
     try {
+      const sellingPrice = Number(formData.selling_price);
+      const margin = Number(formData.margin);
+      const costPrice = Math.max(0, sellingPrice - margin);
+
       const payload = {
         name: formData.name,
-        selling_price: Number(formData.selling_price),
-        margin: Number(formData.margin)
+        selling_price: sellingPrice,
+        cost_price: costPrice,
+        stock: 20,
+        minimum_stock: 5,
       };
 
       await api.post(`/businesses/${businessId}/products`, payload);
@@ -77,6 +87,7 @@ const Products = () => {
       setFormData({ name: '', selling_price: '', margin: '' });
       setIsModalOpen(false);
       loadProducts();
+      alert('Produk berhasil ditambahkan!');
     } catch (err) {
       alert(err.response?.data?.message || err.message || 'Gagal menambahkan produk baru.');
     } finally {
